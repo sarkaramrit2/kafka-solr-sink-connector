@@ -15,6 +15,10 @@
 package com.bkatwal.kafkaproject.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -36,6 +40,8 @@ public class SolrSinkService implements SinkService<String, SinkRecord> {
   private JsonSolrDocMapper jsonSolrDocMapper;
 
   private int commitWithinMs;
+
+  private int indexBatchSize;
 
   //TODO add solr update fields here
   @Override
@@ -72,6 +78,20 @@ public class SolrSinkService implements SinkService<String, SinkRecord> {
   }
 
   @Override
+  public boolean insertBatch(final String id, final List<SolrInputDocument> solrInputDocumentList) {
+    UpdateResponse updateResponse;
+    try {
+      updateResponse = solrClient.add(collection, solrInputDocumentList, commitWithinMs);
+      log.debug("saved documents: {}", solrInputDocumentList);
+    } catch (SolrServerException | IOException e) {
+      log.error("Unable to send update request to solr");
+      throw new SolrException(ErrorCode.SERVER_ERROR, "Unable to send update request to solr", e);
+    }
+    log.debug("Document {}, added in: {}", id, updateResponse.getQTime());
+    return true;
+  }
+
+  @Override
   public void stop() {
     try {
       if (solrClient != null) {
@@ -80,6 +100,11 @@ public class SolrSinkService implements SinkService<String, SinkRecord> {
     } catch (IOException e) {
       log.error("could not close solr client: {}", e);
     }
+  }
+
+  @Override
+  public JsonSolrDocMapper getJsonSolrDocMapper() {
+    return jsonSolrDocMapper;
   }
 
 }

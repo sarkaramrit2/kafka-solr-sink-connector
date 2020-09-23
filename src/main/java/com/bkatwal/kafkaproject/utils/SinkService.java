@@ -17,11 +17,17 @@
 package com.bkatwal.kafkaproject.utils;
 
 
+import org.apache.solr.common.SolrInputDocument;
+
+import java.util.List;
+
 public interface SinkService<K,V> {
 
     boolean update(K id, V data);
     boolean deleteById(K id);
     boolean insert(K id, V data);
+    boolean insertBatch(K id, List<SolrInputDocument> data);
+    JsonSolrDocMapper getJsonSolrDocMapper();
 
     void stop();
 }

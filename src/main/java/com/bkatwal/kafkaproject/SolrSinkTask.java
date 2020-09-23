@@ -18,7 +18,10 @@ import com.bkatwal.kafkaproject.utils.PlainJsonSolrDocMappersImpl;
 import com.bkatwal.kafkaproject.utils.SinkService;
 import com.bkatwal.kafkaproject.utils.SolrClientFactory;
 import com.bkatwal.kafkaproject.utils.SolrSinkService;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -27,6 +30,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.apache.solr.common.SolrInputDocument;
 
 @Slf4j
 public class SolrSinkTask extends SinkTask {
@@ -44,7 +48,7 @@ public class SolrSinkTask extends SinkTask {
     config = new SolrSinkConnectorConfig(configMap);
 
     sinkService = SolrSinkService.builder().collection(config.getCollectionConfig())
-        .commitWithinMs(config.getCommitWithinMs())
+        .commitWithinMs(config.getCommitWithinMs()).indexBatchSize(config.getBatchSize())
         .jsonSolrDocMapper(new PlainJsonSolrDocMappersImpl()).solrClient(SolrClientFactory
             .getClient(config.getSolrModeConfig(), config.getSolrURLConfig())).build();
 
@@ -54,9 +58,12 @@ public class SolrSinkTask extends SinkTask {
 
   @Override
   public void put(Collection<SinkRecord> kafkaRecords) {
-
+    List<SolrInputDocument> batchdocuments = new ArrayList<>();
+    String id = null;
     for (SinkRecord record : kafkaRecords) {
-      String id = record.key() != null ? record.key().toString() : null;
+      int index = 0;
+
+      id = record.key() != null ? record.key().toString() : null;
 
       Schema valueSchema = record.valueSchema();
 
@@ -69,26 +76,17 @@ public class SolrSinkTask extends SinkTask {
             "Check if record in topic is plain json data and value is schema less. Set schema.enable=false for value.");
       }
 
-      Map<String, Object> jsonValueMap = (Map<String, Object>) record.value();
-
-      Object delVal = jsonValueMap.get("_delete_");
-
-      //delete the field "_delete_" after reading the value from it
-      jsonValueMap.remove("_delete_");
-
-      //if _delete_ field is passed as false in value or if value is null, respective
-      // doc will be deleted from solr
-      if (isDeleteRequest(delVal) || record.value() == null) {
-
-        sinkService.deleteById(id);
-
-      } else {
-
-        sinkService.insert(id, record);
-
+      if (++index % config.getBatchSize() != 0) {
+        batchdocuments.add(sinkService.getJsonSolrDocMapper().convertToSolrDocument(record));
+      }
+      else {
+        sinkService.insertBatch(id, batchdocuments);
+        batchdocuments.clear();
       }
     }
-
+    if (batchdocuments.size() > 0) {
+      sinkService.insertBatch(id, batchdocuments);
+    }
   }
 
   private boolean isDeleteRequest(Object delete) {

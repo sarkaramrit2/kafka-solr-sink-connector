@@ -46,6 +46,9 @@ public class SolrSinkConnectorConfig extends AbstractConfig {
   public static final String SOLRMODE_CONFIG = "solr.mode";
   private static final String SOLRMODE_DOC = "solr mode can be STANDALONE/CLOUD";
 
+  public static final String BATCH_SIZE = "solr.index.batch";
+  private static final String BATCH_SIZE_DOC = "solr batch documents";
+
 
   public SolrSinkConnectorConfig(ConfigDef config, Map<String, String> parsedConfig) {
     super(config, parsedConfig);
@@ -62,7 +65,8 @@ public class SolrSinkConnectorConfig extends AbstractConfig {
         .define(USERNAME_CONFIG, Type.STRING, "", Importance.MEDIUM, USERNAME_DOC)
         .define(PASSWORD_CONFIG, Type.PASSWORD, "", Importance.MEDIUM, PASSWORD_DOC)
         .define(SOLRMODE_CONFIG, Type.STRING, CLOUD.name(), Importance.MEDIUM, SOLRMODE_DOC)
-        .define(COMMIT_WITHIN_MS, Type.INT, 10, Importance.MEDIUM, COMMIT_WITHIN_MS_DOC);
+        .define(COMMIT_WITHIN_MS, Type.INT, 10, Importance.MEDIUM, COMMIT_WITHIN_MS_DOC)
+            .define(BATCH_SIZE, Type.INT, 1, Importance.MEDIUM, BATCH_SIZE_DOC);
   }
 
 
@@ -91,5 +95,9 @@ public class SolrSinkConnectorConfig extends AbstractConfig {
 
   public int getCommitWithinMs(){
     return getInt(COMMIT_WITHIN_MS);
+  }
+
+  public int getBatchSize(){
+    return getInt(BATCH_SIZE);
   }
 }
