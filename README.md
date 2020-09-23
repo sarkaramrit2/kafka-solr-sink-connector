@@ -15,6 +15,7 @@ solr.mode|Mode on which solr is running, pass solr node url|CLOUD or STANDALONE|
 solr.url|If `solr.mode` is `CLOUD`, pass comma seperated zookeeper url else pass standalone solr server url|url|Yes|
 connector.class|Connector class name|com.bkatwal.kafkaproject.SolrSinkConnector|Yes|
 commit.within.ms|commit within ms value for solr update, if none passes defaults to 10 ms|int value|No|
+solr.index.batch|batch of documents indexed to solr for update, if none passes defaults to 1|int value|No|
 
 ##### Refer/Use configuration: <a href="https://github.com/bkatwal/kafka-solr-sink-connector/tree/master/config">config files</a>
 
