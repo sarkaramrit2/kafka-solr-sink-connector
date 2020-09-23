@@ -87,6 +87,7 @@ public class SolrSinkTask extends SinkTask {
     if (batchdocuments.size() > 0) {
       sinkService.insertBatch(id, batchdocuments);
     }
+    batchdocuments.clear();
   }
 
   private boolean isDeleteRequest(Object delete) {
